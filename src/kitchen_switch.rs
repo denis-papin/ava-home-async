@@ -1,15 +1,11 @@
 use std::cell::RefCell;
-use std::net::TcpStream;
 use std::sync::Arc;
-use log::info;
-use rumqttc::v5::AsyncClient;
-use rumqttc::v5::mqttbytes::QoS;
-use crate::device_lock::DeviceLock;
 
+use log::info;
+
+use crate::device_lock::DeviceLock;
 use crate::device_message::{DeviceMessage, InterSwitch};
 use crate::dyn_device::DynDevice;
-use crate::mqtt::publish;
-
 
 pub (crate) const KITCHEN_SWITCH : &str = "kitchen_switch";
 
@@ -33,6 +29,14 @@ impl KitchenSwitchDevice {
 
 impl DynDevice for KitchenSwitchDevice {
 
+    fn get_lock(&self) -> Arc<RefCell<DeviceLock<String>>> {
+        self.lock.clone()
+    }
+
+    fn setup(&mut self, _setup: bool) {
+        // Nothing to do
+    }
+
     fn get_topic(&self) -> String {
         format!("zigbee2mqtt/{}", Self::get_name())
     }
@@ -45,7 +49,7 @@ impl DynDevice for KitchenSwitchDevice {
         let msg = r#"{"state":""}"#;
         msg.as_bytes().to_vec()
         // client.publish(&format!("{}/get", &self.get_topic()), QoS::AtLeastOnce, false,  octets).await.unwrap();
-    //    publish(&mut pub_stream, &format!("{}/get", &self.get_topic()), r#"{"state":""}"#);
+        // publish(&mut pub_stream, &format!("{}/get", &self.get_topic()), r#"{"state":""}"#);
     }
 
     fn from_json_to_local(&self, msg: &str) -> Result<Box<dyn DeviceMessage>, String> {

@@ -1,3 +1,19 @@
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::env;
+use std::sync::Arc;
+use std::time::Duration;
+
+use log::info;
+use rumqttc::v5::{AsyncClient, MqttOptions};
+use rumqttc::v5::mqttbytes::QoS;
+
+use crate::device_repo::{build_device_repo, device_to_listen};
+use crate::dyn_device::DynDevice;
+use crate::init_loop::{build_init_list, process_initialization_message};
+use crate::loops::build_loops;
+use crate::processing::process_incoming_message;
+
 mod hall_lamp;
 mod kitchen_lamp;
 mod kitchen_switch;
@@ -9,21 +25,9 @@ mod loops;
 mod kitchen_inter_dim;
 mod device_repo;
 mod init_loop;
-
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::env;
-use std::sync::Arc;
-use rumqttc::v5::{MqttOptions, AsyncClient, Event, Incoming};
-use tokio::{task, time};
-use std::time::Duration;
-use log::info;
-use rumqttc::v5::mqttbytes::QoS;
-use rumqttc::v5::mqttbytes::v5::{Publish, PublishProperties};
-use crate::device_repo::{build_device_repo, device_to_listen};
-use crate::dyn_device::DynDevice;
-use crate::init_loop::{build_init_list, process_initialization_message};
-use crate::loops::build_loops;
+mod processing;
+mod message_enum;
+mod generic_device;
 
 const CLIENT_ID: &str = "ava-0.5.0";
 
@@ -113,19 +117,14 @@ async fn main() {
     match process_initialization_message(&mut client, &mut eventloop, &mut init_list).await {
         Ok(_) => {
             info!("Process incoming messages");
-            //let _ = process_incoming_message(&mut stream, &mut pub_stream, &mut all_loops);
+            let _ = process_incoming_message(&mut client, &mut eventloop, &mut all_loops).await;
         }
         Err(e) => {
             panic!("{}", e);
         }
     }
-
-    // while let Ok(notification) = eventloop.poll().await {
-    //     handle_event(notification).await;
-    //     //
-    // }
-
     println!("Done!");
 }
+
 
 

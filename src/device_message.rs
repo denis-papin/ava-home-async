@@ -86,7 +86,6 @@ impl DeviceMessage for LampRGB {
         serde_json::to_string(self)
     }
 
-
     fn to_inter_switch(&self) -> Box<dyn DeviceMessage>  {
         Box::new(InterSwitch {
             state: self.state.clone(),
@@ -103,13 +102,11 @@ impl DeviceMessage for LampRGB {
     fn to_lamp_rgb(&self, last_message : &Box<dyn DeviceMessage>) -> Box<dyn DeviceMessage> {
         let rgb = last_message.as_lamp_rgb();
         Box::new(LampRGB {
-            //color: rgb.color.clone(),
             color_temp: self.color_temp,
             brightness: self.brightness,
             state: self.state.clone(),
         })
     }
-
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -140,6 +137,16 @@ impl DeviceMessage for InterSwitch {
 
     fn as_inter_dim(&self) -> &'_ InterDim {
         todo!()
+    }
+
+    fn to_lamp_rgb(&self, last_message : &Box<dyn DeviceMessage>) -> Box<dyn DeviceMessage> {
+        info!("InterSwitch message conversion to Rgb : {}", &last_message.to_json().unwrap());
+        let rgb = last_message.as_lamp_rgb();
+        Box::new(LampRGB {
+            color_temp: rgb.color_temp,
+            brightness: rgb.brightness,
+            state: self.state.clone(),
+        })
     }
 
     fn to_json(&self) -> serde_json::error::Result<String> {
@@ -174,7 +181,6 @@ impl TempSensor {
 }
 
 impl DeviceMessage for TempSensor {
-
     fn as_temp_sensor(&self) -> &'_ TempSensor{
         self
     }
@@ -182,7 +188,6 @@ impl DeviceMessage for TempSensor {
     fn to_json(&self) -> serde_json::Result<String> {
         serde_json::to_string(self)
     }
-
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

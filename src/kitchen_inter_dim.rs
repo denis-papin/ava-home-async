@@ -1,10 +1,8 @@
-use std::cell::{RefCell};
-use std::net::TcpStream;
-
+use std::cell::RefCell;
 use std::sync::Arc;
+
 use log::info;
-use rumqttc::v5::AsyncClient;
-use crate::{device_lock};
+
 use crate::device_lock::DeviceLock;
 use crate::device_message::{DeviceMessage, InterDim};
 use crate::dyn_device::DynDevice;
@@ -38,6 +36,7 @@ impl DynDevice for KitchenInterDimDevice {
     fn setup(&mut self, _setup: bool) {
         // Nothing to do
     }
+
     fn get_topic(&self) -> String {
         format!("zigbee2mqtt/{}", Self::get_name())
     }

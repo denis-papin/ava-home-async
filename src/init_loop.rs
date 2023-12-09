@@ -1,16 +1,16 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::net::TcpStream;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
-use log::{error, info};
+
+use log::info;
 use rumqttc::v5::{AsyncClient, Event, Incoming};
 use rumqttc::v5::EventLoop;
 use rumqttc::v5::mqttbytes::QoS;
+
 use crate::dyn_device::DynDevice;
 use crate::hall_lamp::HALL_LAMP;
 use crate::kitchen_lamp::KITCHEN_LAMP;
-
 
 pub (crate) fn build_init_list(device_repo : &HashMap<String, Arc<RefCell<dyn DynDevice>>>) -> Vec<Arc<RefCell<dyn DynDevice>>> {
     vec![
@@ -23,7 +23,7 @@ pub (crate) fn build_init_list(device_repo : &HashMap<String, Arc<RefCell<dyn Dy
 /// Send an information message for all the device we want to init
 /// Read the responses from mosquitto and run the init routine for the devices.
 ///
-pub (crate) async fn process_initialization_message(mut client: &mut AsyncClient, mut eventloop: &mut EventLoop, /*mut stream : &mut TcpStream, mut pub_stream: &mut TcpStream,*/ device_to_init: &Vec<Arc<RefCell<dyn DynDevice>>>) -> Result<(), String> {
+pub (crate) async fn process_initialization_message(mut client: &mut AsyncClient, mut eventloop: &mut EventLoop, device_to_init: &Vec<Arc<RefCell<dyn DynDevice>>>) -> Result<(), String> {
 
     info!("Initialisation stage starts");
 
@@ -34,82 +34,24 @@ pub (crate) async fn process_initialization_message(mut client: &mut AsyncClient
 
             dbg!("Topic", &dd.get_topic());
             let data = dd.trigger_info();
-            client.publish(&format!("{}/get", &dd.get_topic()), QoS::AtLeastOnce, false,  data).await.unwrap();
+            client.publish(&format!("{}/get", &dd.get_topic()), QoS::AtLeastOnce, false,  data).await.unwrap(); // TODO
         }
 
         while let Ok(notification) = eventloop.poll().await {
-
             let mut end_loop = true;
-
             handle_event(notification, device_to_init).await;
-
             for dev in device_to_init {
                 info!("Devices before check ----------");
-
                 let borr = dev.as_ref().borrow();
                 let dd = borr.deref().clone();
-
-
-
                 if !dd.is_init() {
                     end_loop = false;
                 }
             }
-
             if end_loop {
                 break;
             }
-
         }
-
-        // loop {
-        //     let mut end_loop = true;
-        //     let packet = match VariablePacket::decode(&mut stream) {
-        //         Ok(pk) => pk,
-        //         Err(err) => {
-        //             error!("Error in receiving packet {:?}", err);
-        //             continue;
-        //         }
-        //     };
-        //
-        //     match packet {
-        //         VariablePacket::PingrespPacket(..) => {
-        //             info!("Receiving PINGRESP from broker ..");
-        //         }
-        //         VariablePacket::PublishPacket(ref publ) => {
-        //             let msg = match str::from_utf8(publ.payload()) {
-        //                 Ok(msg) => msg,
-        //                 Err(err) => {
-        //                     error!("Failed to decode publish message {:?}", err);
-        //                     continue;
-        //                 }
-        //             };
-        //             info!("PUBLISH ({}): {}", publ.topic_name(), msg);
-        //
-        //             for dev in device_to_init {
-        //                 let mut borr = dev.as_ref().borrow_mut();
-        //                 let dd = borr.deref_mut();
-        //                 dd.init(publ.topic_name(), msg);
-        //             }
-        //
-        //             for dev in device_to_init {
-        //                 info!("Devices before check ----------");
-        //
-        //                 let borr = dev.as_ref().borrow();
-        //                 let dd = borr.deref().clone();
-        //
-        //                 if !dd.is_init() {
-        //                     end_loop = false;
-        //                 }
-        //             }
-        //         }
-        //         _ => {}
-        //     }
-        //
-        //     if end_loop {
-        //         break;
-        //     }
-        // } // end while
     } // device is empty
 
     info!("Initialisation stage finished");
@@ -125,7 +67,6 @@ async fn handle_event(event: Event, device_to_init: &Vec<Arc<RefCell<dyn DynDevi
 
             let msg = std::str::from_utf8(&publish.payload).unwrap();
             let topic = std::str::from_utf8(publish.topic.as_ref()).unwrap(); // TODO
-
 
             if let Some(properties) = publish.properties {
                 // Vous pouvez accéder à différentes propriétés ici

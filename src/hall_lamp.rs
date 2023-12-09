@@ -1,15 +1,11 @@
-
-use std::cell::{RefCell};
-use std::net::TcpStream;
-
+use std::cell::RefCell;
 use std::sync::Arc;
+
 use log::info;
-use rumqttc::v5::AsyncClient;
-use rumqttc::v5::mqttbytes::QoS;
+
 use crate::device_lock::DeviceLock;
 use crate::device_message::{DeviceMessage, LampRGB};
 use crate::dyn_device::DynDevice;
-use crate::mqtt::publish;
 
 pub(crate) const HALL_LAMP : &str = "hall_lamp";
 
